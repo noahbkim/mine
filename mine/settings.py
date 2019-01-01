@@ -32,7 +32,8 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'api',
-    'rest_framework',
+    'graphene_django',
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -121,13 +122,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
-# Django Rest Framework
+# Graphene configuration
+# https://docs.graphene-python.org/projects/django/en/latest/tutorial-plain/
 
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-    ),
+GRAPHENE = {
+    'SCHEMA': 'api.schema.schema'
 }
