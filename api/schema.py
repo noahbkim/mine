@@ -1,8 +1,14 @@
 import graphene
+from graphql.error import GraphQLError
 from graphene_django.types import DjangoObjectType
 
 from . import models
 from django.contrib.auth.models import User
+
+
+class UnauthorisedAccessError(GraphQLError):
+    def __init__(self, message, *args, **kwargs):
+        super(UnauthorisedAccessError, self).__init__(message, *args, **kwargs)
 
 
 class UserType(DjangoObjectType):
@@ -10,7 +16,28 @@ class UserType(DjangoObjectType):
         model = User
         # fields = ("id", "username", "first_name", "last_name")
 
-    # TODO: limit field access
+    items = graphene.List("api.schema.ItemType")
+
+    def resolve_items(self: User, info, **kwargs):
+        return self.items.all()
+
+    def resolve_password(self: User, info, **kwargs):
+        raise UnauthorisedAccessError(message="No permissions to see password")
+
+    def resolve_last_login(self: User, info, **kwargs):
+        raise UnauthorisedAccessError(message="No permissions to see last login")
+
+    def resolve_is_superuser(self: User, info, **kwargs):
+        raise UnauthorisedAccessError(message="No permissions to see super user status")
+
+    def resolve_is_staff(self: User, info, **kwargs):
+        raise UnauthorisedAccessError(message="No permissions to see staff status")
+
+    def resolve_is_active(self: User, info, **kwargs):
+        raise UnauthorisedAccessError(message="No permissions to see active status")
+
+    def resolve_date_joined(self: User, info, **kwargs):
+        raise UnauthorisedAccessError(message="No permissions to see date joined")
 
 
 class LocationType(DjangoObjectType):
@@ -36,6 +63,20 @@ class PackingListType(DjangoObjectType):
 class ItemType(DjangoObjectType):
     class Meta:
         model = models.Item
+
+    detail = graphene.Field(DetailType, name=graphene.String(), value=graphene.String())
+
+    def resolve_detail(self: models.Item, info, **kwargs):
+        query = {}  # We want to be able to query one or the other or both
+        name = kwargs.get("name")
+        value = kwargs.get("value")
+        if name is not None:
+            query["name"] = name
+        if value is not None:
+            query["value"] = value
+        if name is not None or value is not None:
+            return self.details.filter(**query).first()
+        return None
 
 
 class TransactionType(DjangoObjectType):
