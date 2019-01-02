@@ -3,80 +3,45 @@ from graphql.error import GraphQLError
 from graphene_django.types import DjangoObjectType
 
 from . import models
-from django.contrib.auth.models import User
+from . import query
 
 
 class UnauthorisedAccessError(GraphQLError):
+    """Raised to prevent access to sensitive parts of existing models/"""
+
     def __init__(self, message, *args, **kwargs):
         super(UnauthorisedAccessError, self).__init__(message, *args, **kwargs)
 
 
-class UserType(DjangoObjectType):
+class UserType(query.Location, query.Category, query.Item, query.List, DjangoObjectType):
     class Meta:
-        model = User
-        # fields = ("id", "username", "first_name", "last_name")
-
-    items = graphene.List("api.schema.ItemType")
-
-    def resolve_items(self: User, info, **kwargs):
-        return self.items.all()
-
-    def resolve_password(self: User, info, **kwargs):
-        raise UnauthorisedAccessError(message="No permissions to see password")
-
-    def resolve_last_login(self: User, info, **kwargs):
-        raise UnauthorisedAccessError(message="No permissions to see last login")
-
-    def resolve_is_superuser(self: User, info, **kwargs):
-        raise UnauthorisedAccessError(message="No permissions to see super user status")
-
-    def resolve_is_staff(self: User, info, **kwargs):
-        raise UnauthorisedAccessError(message="No permissions to see staff status")
-
-    def resolve_is_active(self: User, info, **kwargs):
-        raise UnauthorisedAccessError(message="No permissions to see active status")
-
-    def resolve_date_joined(self: User, info, **kwargs):
-        raise UnauthorisedAccessError(message="No permissions to see date joined")
+        model = models.User
+        only_fields = ("username", "first_name", "last_name", "email")
 
 
-class LocationType(DjangoObjectType):
+class LocationType(query.Item, DjangoObjectType):
     class Meta:
         model = models.Location
 
 
-class CategoryType(DjangoObjectType):
+class CategoryType(query.Item, DjangoObjectType):
     class Meta:
         model = models.Category
 
 
-class DetailType(DjangoObjectType):
+class DetailType(query.Item, DjangoObjectType):
     class Meta:
         model = models.Detail
 
 
-class PackingListType(DjangoObjectType):
+class ListType(ItemQuery, DjangoObjectType):
     class Meta:
-        model = models.PackingList
+        model = models.List
 
 
-class ItemType(DjangoObjectType):
+class ItemType(UserQuery, DetailQuery, DjangoObjectType):
     class Meta:
         model = models.Item
-
-    detail = graphene.Field(DetailType, name=graphene.String(), value=graphene.String())
-
-    def resolve_detail(self: models.Item, info, **kwargs):
-        query = {}  # We want to be able to query one or the other or both
-        name = kwargs.get("name")
-        value = kwargs.get("value")
-        if name is not None:
-            query["name"] = name
-        if value is not None:
-            query["value"] = value
-        if name is not None or value is not None:
-            return self.details.filter(**query).first()
-        return None
 
 
 class TransactionType(DjangoObjectType):
@@ -84,83 +49,20 @@ class TransactionType(DjangoObjectType):
         model = models.Transaction
 
 
-class Query(graphene.ObjectType):
+class Query(UserQuery, DetailQuery, graphene.ObjectType):
 
-    # List queries
-    users = graphene.List(LocationType)
-    locations = graphene.List(LocationType)
-    categories = graphene.List(CategoryType)
-    details = graphene.List(DetailType)
-    packing_lists = graphene.List(PackingListType)
-    items = graphene.List(ItemType)
-    transactions = graphene.List(TransactionType)
-
-    # Resolvers
-    def resolve_users(self, info, **kwargs):
-        return User.objects.all()
-
-    def resolve_locations(self, info, **kwargs):
-        return models.Location.objects.all()
-
-    def resolve_categories(self, info, **kwargs):
-        return models.Category.objects.all()
-
-    def resolve_details(self, info, **kwargs):
-        return models.Detail.objects.all()
-
-    def resolve_packing_lists(self, info, **kwargs):
-        return models.PackingList.objects.all()
-
-    def resolve_items(self, info, **kwargs):
-        return models.Item.objects.all()
-
-    def resolve_transactions(self, info, **kwargs):
-        return models.Transaction.objects.all()
-
-    # Single items
-    user = graphene.Field(UserType, username=graphene.String())
-    location = graphene.Field(LocationType, name=graphene.String())
-    category = graphene.Field(CategoryType, name=graphene.String())
-    packing_list = graphene.Field(PackingListType, id=graphene.Int(), name=graphene.String())
-    item = graphene.Field(ItemType, id=graphene.Int())
-    transaction = graphene.Field(TransactionType, id=graphene.Int())
-
-    # Resolvers
-    def resolve_user(self, info, **kwargs):
-        username = kwargs.get("username")
-        if username is not None:
-            return User.objects.get(username=username)
-        return None
-
-    def resolve_location(self, info, **kwargs):
-        name = kwargs.get("name")
-        if name is not None:
-            return models.Location.objects.get(name=name)
-        return None
-
-    def resolve_category(self, info, **kwargs):
-        name = kwargs.get("name")
-        if name is not None:
-            return models.Category.objects.get(name=name)
-        return None
-
-    def resolve_packing_list(self, info, **kwargs):
-        id = kwargs.get("id")
-        if id is not None:
-            return models.PackingList.objects.get(id=id)
-        return None
-
-    def resolve_item(self, info, **kwargs):
-        id = kwargs.get("id")
-        if id is not None:
-            return models.Item.objects.get(id=id)
-        return None
+    # Transaction
+    transaction = graphene.Field("api.schema.TransactionType", id=graphene.Int())
+    transactions = graphene.List("api.schema.TransactionType")
 
     def resolve_transaction(self, info, **kwargs):
         id = kwargs.get("id")
         if id is not None:
             return models.Transaction.objects.get(id=id)
         return None
+
+    def resolve_transactions(self, info, **kwargs):
+        return models.Transaction.objects.all()
 
 
 schema = graphene.Schema(query=Query)
