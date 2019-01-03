@@ -1,5 +1,7 @@
 import secrets
 from django.contrib.auth.backends import ModelBackend
+from django.middleware.common import MiddlewareMixin
+from django.utils.functional import SimpleLazyObject
 
 from . import models
 
@@ -35,11 +37,12 @@ class TokenBackend(ModelBackend):
                 request.token = session.token
             return user
 
-        token = credentials["token"]
-        if token is not None:
-            session = models.Session.objects.filter(token=token).first()
-            if session is not None:
-                request.token = token
-                return session.user
-
         return None
+
+
+class TokenMiddleware(MiddlewareMixin):
+    """Middleware for accessing the user making a request."""
+
+    def process_request(self, request):
+
+        request.user = SimpleLazyObject(lambda: get_user(request))

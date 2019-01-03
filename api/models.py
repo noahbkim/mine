@@ -20,6 +20,8 @@ class Location(models.Model):
     notes = models.TextField(null=True, blank=True)
     current = models.BooleanField(default=False)
 
+    items = models.ManyToManyField(to="Item", blank=True, through="LocationInventory", related_name="locations")
+
     def __str__(self):
         return self.name
 
@@ -38,7 +40,6 @@ class Category(models.Model):
 class Detail(models.Model):
     """A key-value pair describing an item."""
 
-    # user = models.ForeignKey(to="auth.User", on_delete=models.CASCADE)
     name = models.CharField(max_length=64)
     value = models.CharField(max_length=128)
 
@@ -52,10 +53,21 @@ class List(models.Model):
     user = models.ForeignKey(to="auth.User", on_delete=models.CASCADE)
     name = models.CharField(max_length=64)
     notes = models.TextField(null=True, blank=True)
-    items = models.ManyToManyField(to="Item", through="ListInventory", related_name="+")
+    items = models.ManyToManyField(to="Item", blank=True, through="ListInventory", related_name="lists")
 
     def __str__(self):
         return f"{self.user.username}:{self.name}"
+
+
+class LocationInventory(models.Model):
+    """A relational table for counting items at a location."""
+
+    location = models.ForeignKey(to="Location", on_delete=models.CASCADE)
+    item = models.ForeignKey(to="Item", on_delete=models.CASCADE)
+    count = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.location.name}:{self.item.name} ({self.count})"
 
 
 class ListInventory(models.Model):
@@ -88,9 +100,8 @@ class Item(models.Model):
     name = models.CharField(max_length=128)
     notes = models.TextField(null=True, blank=True)
 
-    location = models.ForeignKey(to="Location", null=True, related_name="items", on_delete=models.SET_NULL)
-    category = models.ForeignKey(to="Category", null=True, related_name="items", on_delete=models.SET_NULL)
-    details = models.ManyToManyField(to="Detail", related_name="items")
+    category = models.ForeignKey(to="Category", null=True, blank=True, related_name="items", on_delete=models.SET_NULL)
+    details = models.ManyToManyField(to="Detail", blank=True, related_name="items")
 
     volume = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
