@@ -5,13 +5,6 @@ from django.contrib.auth.models import User
 TRANSACTIONS = {1: "acquired", 2: "removed", 3: "lost", 4: "recorded", 5: "consumed"}
 
 
-class Session(models.Model):
-    """A simple, token-based authentication strategy."""
-
-    user = models.OneToOneField(to="auth.User", on_delete=models.CASCADE)
-    token = models.CharField(max_length=64)
-
-
 class Location(models.Model):
     """A location where items can be."""
 

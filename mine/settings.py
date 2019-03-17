@@ -32,7 +32,8 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'api',
-    'graphene_django',
+    'rest_framework',
+    'rest_framework_jwt',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,7 +53,7 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'api.auth.TokenBackend'
+    'django.contrib.auth.backends.ModelBackend'
 ]
 
 ROOT_URLCONF = 'mine.urls'

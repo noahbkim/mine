@@ -9,8 +9,6 @@ name = "pypi"
 django = "*"
 djangorestframework = "*"
 djangorestframework-jwt = "*"
-graphene = "*"
-graphene-django = "*"
 
 [requires]
 python_version = "3.7"
